@@ -1,46 +1,5 @@
-#requires -version 2
-
-<#
-
-    LAPSToolkit
-
-    Uses many functions from PowerView
-    URL: https://github.com/PowerShellMafia/PowerSploit/blob/master/Recon/PowerView.ps1
-    Author: Will Schroeder (@harmj0y)
-
-    Credits: 
-        Will Schroeder (@harmj0y), 
-        Sean Metcalf (@pyrotek3),
-        Matt Graeber (@mattifestation),
-	    Karl Fosaaen (@kfosaaen)
-
-
-#>
-
-
-########################################################
-#
-# Functions from PowerView
-# Author: Will Schroeder (@harmj0y)
-#
-########################################################
-
 filter Export-PowerViewCSV {
-<#
-    .SYNOPSIS
 
-        This helper exports an -InputObject to a .csv in a thread-safe manner
-        using a mutex. This is so the various multi-threaded functions in
-        PowerView has a thread-safe way to export output to the same file.
-        
-        Based partially on Dmitry Sotnikov's Export-CSV code
-            at http://poshcode.org/1590
-
-    .LINK
-
-        http://poshcode.org/1590
-        http://dmitrysotnikov.wordpress.com/2010/01/19/Export-Csv-append/
-#>
     Param(
         [Parameter(Mandatory=$True, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True)]
         [System.Management.Automation.PSObject[]]
@@ -71,19 +30,7 @@ filter Export-PowerViewCSV {
 
 
 filter Convert-SidToName {
-<#
-    .SYNOPSIS
-    
-        Converts a security identifier (SID) to a group/user name.
 
-    .PARAMETER SID
-    
-        The SID to convert.
-
-    .EXAMPLE
-
-        PS C:\> Convert-SidToName S-1-5-21-2620891829-2411261497-1773853088-1105
-#>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
@@ -95,8 +42,7 @@ filter Convert-SidToName {
     try {
         $SID2 = $SID.trim('*')
 
-        # try to resolve any built-in SIDs first
-        #   from https://support.microsoft.com/en-us/kb/243330
+
         Switch ($SID2)
         {
             'S-1-0'         { 'Null Authority' }
@@ -174,43 +120,7 @@ filter Convert-SidToName {
 
 
 filter Convert-ADName {
-<#
-    .SYNOPSIS
 
-        Converts user/group names from NT4 (DOMAIN\user) or domainSimple (user@domain.com)
-        to canonical format (domain.com/Users/user) or NT4.
-
-        Based on Bill Stewart's code from this article: 
-            http://windowsitpro.com/active-directory/translating-active-directory-object-names-between-formats
-
-    .PARAMETER ObjectName
-
-        The user/group name to convert.
-
-    .PARAMETER InputType
-
-        The InputType of the user/group name ("NT4","Simple","Canonical").
-
-    .PARAMETER OutputType
-
-        The OutputType of the user/group name ("NT4","Simple","Canonical").
-
-    .EXAMPLE
-
-        PS C:\> Convert-ADName -ObjectName "dev\dfm"
-        
-        Returns "dev.testlab.local/Users/Dave"
-
-    .EXAMPLE
-
-        PS C:\> Convert-SidToName "S-..." | Convert-ADName
-        
-        Returns the canonical name for the resolved SID.
-
-    .LINK
-
-        http://windowsitpro.com/active-directory/translating-active-directory-object-names-between-formats
-#>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
@@ -263,14 +173,12 @@ filter Convert-ADName {
         }
     }
 
-    # try to extract the domain from the given format
     $Domain = Switch($InputType) {
         'NT4' { $ObjectName.split("\")[0] }
         'Simple' { $ObjectName.split("@")[1] }
         'Canonical' { $ObjectName.split("/")[0] }
     }
 
-    # Accessor functions to simplify calls to NameTranslate
     function Invoke-Method([__ComObject] $Object, [String] $Method, $Parameters) {
         $Output = $Object.GetType().InvokeMember($Method, "InvokeMethod", $Null, $Object, $Parameters)
         if ( $Output ) { $Output }
@@ -301,38 +209,6 @@ filter Convert-ADName {
 
 
 function ConvertFrom-UACValue {
-<#
-    .SYNOPSIS
-
-        Converts a UAC int value to human readable form.
-
-    .PARAMETER Value
-
-        The int UAC value to convert.
-
-    .PARAMETER ShowAll
-
-        Show all UAC values, with a + indicating the value is currently set.
-
-    .EXAMPLE
-
-        PS C:\> ConvertFrom-UACValue -Value 66176
-
-        Convert the UAC value 66176 to human readable format.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetUser jason | select useraccountcontrol | ConvertFrom-UACValue
-
-        Convert the UAC value for 'jason' to human readable format.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetUser jason | select useraccountcontrol | ConvertFrom-UACValue -ShowAll
-
-        Convert the UAC value for 'jason' to human readable format, showing all
-        possible UAC values.
-#>
     
     [CmdletBinding()]
     param(
@@ -344,7 +220,6 @@ function ConvertFrom-UACValue {
     )
 
     begin {
-        # values from https://support.microsoft.com/en-us/kb/305144
         $UACValues = New-Object System.Collections.Specialized.OrderedDictionary
         $UACValues.Add("SCRIPT", 1)
         $UACValues.Add("ACCOUNTDISABLE", 2)
@@ -410,21 +285,7 @@ function ConvertFrom-UACValue {
 
 
 filter Get-Proxy {
-<#
-    .SYNOPSIS
-    
-        Enumerates the proxy server and WPAD conents for the current user.
 
-    .PARAMETER ComputerName
-
-        The computername to enumerate proxy settings on, defaults to local host.
-
-    .EXAMPLE
-
-        PS C:\> Get-Proxy 
-        
-        Returns the current proxy settings.
-#>
     param(
         [Parameter(ValueFromPipeline=$True)]
         [ValidateNotNullOrEmpty()]
@@ -469,25 +330,7 @@ filter Get-Proxy {
 
 
 function Get-PathAcl {
-<#
-    .SYNOPSIS
-    
-        Enumerates the ACL for a given file path.
 
-    .PARAMETER Path
-
-        The local/remote path to enumerate the ACLs for.
-
-    .PARAMETER Recurse
-        
-        If any ACL results are groups, recurse and retrieve user membership.
-
-    .EXAMPLE
-
-        PS C:\> Get-PathAcl "\\SERVER\Share\" 
-        
-        Returns ACLs for the given UNC share.
-#>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
@@ -502,7 +345,6 @@ function Get-PathAcl {
 
         function Convert-FileRight {
 
-            # From http://stackoverflow.com/questions/28029872/retrieving-security-descriptor-and-getting-number-for-filesystemrights
 
             [CmdletBinding()]
             param(
@@ -544,7 +386,6 @@ function Get-PathAcl {
 
             $Permissions = @()
 
-            # get simple permission
             $Permissions += $SimplePermissions.Keys |  % {
                               if (($FSR -band $_) -eq $_) {
                                 $SimplePermissions[$_]
@@ -552,7 +393,6 @@ function Get-PathAcl {
                               }
                             }
 
-            # get remaining extended permissions
             $Permissions += $AccessMask.Keys |
                             ? { $FSR -band $_ } |
                             % { $AccessMask[$_] }
@@ -605,28 +445,7 @@ function Get-PathAcl {
 
 
 filter Get-NameField {
-<#
-    .SYNOPSIS
-    
-        Helper that attempts to extract appropriate field names from
-        passed computer objects.
 
-    .PARAMETER Object
-
-        The passed object to extract name fields from.
-
-    .PARAMETER DnsHostName
-        
-        A DnsHostName to extract through ValueFromPipelineByPropertyName.
-
-    .PARAMETER Name
-        
-        A Name to extract through ValueFromPipelineByPropertyName.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetComputer -FullData | Get-NameField
-#>
     [CmdletBinding()]
     param(
         [Parameter(ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
@@ -650,15 +469,12 @@ filter Get-NameField {
     }
     elseif($Object) {
         if ( [bool]($Object.PSobject.Properties.name -match "dnshostname") ) {
-            # objects from Get-NetComputer
             $Object.dnshostname
         }
         elseif ( [bool]($Object.PSobject.Properties.name -match "name") ) {
-            # objects from Get-NetDomainController
             $Object.name
         }
         else {
-            # strings and catch alls
             $Object
         }
     }
@@ -669,16 +485,7 @@ filter Get-NameField {
 
 
 function Convert-LDAPProperty {
-<#
-    .SYNOPSIS
-    
-        Helper that converts specific LDAP property result fields.
-        Used by several of the Get-Net* function.
 
-    .PARAMETER Properties
-
-        Properties object to extract out LDAP fields for display.
-#>
     param(
         [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
         [ValidateNotNullOrEmpty()]
@@ -689,17 +496,13 @@ function Convert-LDAPProperty {
 
     $Properties.PropertyNames | ForEach-Object {
         if (($_ -eq "objectsid") -or ($_ -eq "sidhistory")) {
-            # convert the SID to a string
             $ObjectProperties[$_] = (New-Object System.Security.Principal.SecurityIdentifier($Properties[$_][0],0)).Value
         }
         elseif($_ -eq "objectguid") {
-            # convert the GUID to a string
             $ObjectProperties[$_] = (New-Object Guid (,$Properties[$_][0])).Guid
         }
         elseif( ($_ -eq "lastlogon") -or ($_ -eq "lastlogontimestamp") -or ($_ -eq "pwdlastset") -or ($_ -eq "lastlogoff") -or ($_ -eq "badPasswordTime") ) {
-            # convert timestamps
             if ($Properties[$_][0] -is [System.MarshalByRefObject]) {
-                # if we have a System.__ComObject
                 $Temp = $Properties[$_][0]
                 [Int32]$High = $Temp.GetType().InvokeMember("HighPart", [System.Reflection.BindingFlags]::GetProperty, $null, $Temp, $null)
                 [Int32]$Low  = $Temp.GetType().InvokeMember("LowPart",  [System.Reflection.BindingFlags]::GetProperty, $null, $Temp, $null)
@@ -710,7 +513,6 @@ function Convert-LDAPProperty {
             }
         }
         elseif($Properties[$_][0] -is [System.MarshalByRefObject]) {
-            # try to convert misc com objects
             $Prop = $Properties[$_]
             try {
                 $Temp = $Prop[$_][0]
@@ -736,46 +538,6 @@ function Convert-LDAPProperty {
 
 
 filter Get-DomainSearcher {
-<#
-    .SYNOPSIS
-
-        Helper used by various functions that takes an ADSpath and
-        domain specifier and builds the correct ADSI searcher object.
-
-    .PARAMETER Domain
-
-        The domain to use for the query, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-
-    .PARAMETER ADSprefix
-
-        Prefix to set for the searcher (like "CN=Sites,CN=Configuration")
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-DomainSearcher -Domain testlab.local
-
-    .EXAMPLE
-
-        PS C:\> Get-DomainSearcher -Domain testlab.local -DomainController SECONDARY.dev.testlab.local
-#>
 
     param(
         [Parameter(ValueFromPipeline=$True)]
@@ -805,8 +567,6 @@ filter Get-DomainSearcher {
         }
         elseif(!$DomainController) {
             try {
-                # if there's no -DomainController specified, try to pull the primary DC
-                #   to reflect queries through
                 $DomainController = ((Get-NetDomain).PdcRoleOwner).Name
             }
             catch {
@@ -882,32 +642,6 @@ filter Get-DomainSearcher {
 
 
 filter Get-NetDomain {
-<#
-    .SYNOPSIS
-
-        Returns a given domain object.
-
-    .PARAMETER Domain
-
-        The domain name to query for, defaults to the current domain.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetDomain -Domain testlab.local
-
-    .EXAMPLE
-
-        PS C:\> "testlab.local" | Get-NetDomain
-
-    .LINK
-
-        http://social.technet.microsoft.com/Forums/scriptcenter/en-US/0c5b3f83-e528-4d49-92a4-dee31f4b481c/finding-the-dn-of-the-the-domain-without-admodule-in-powershell?forum=ITCG
-#>
 
     param(
         [Parameter(ValueFromPipeline=$True)]
@@ -923,7 +657,6 @@ filter Get-NetDomain {
         Write-Verbose "Using alternate credentials for Get-NetDomain"
 
         if(!$Domain) {
-            # if no domain is supplied, extract the logon domain from the PSCredential passed
             $Domain = $Credential.GetNetworkCredential().Domain
             Write-Verbose "Extracted domain '$Domain' from -Credential"
         }
@@ -955,28 +688,6 @@ filter Get-NetDomain {
 
 
 filter Get-NetForest {
-<#
-    .SYNOPSIS
-
-        Returns a given forest object.
-
-    .PARAMETER Forest
-
-        The forest name to query for, defaults to the current domain.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-    
-        PS C:\> Get-NetForest -Forest external.domain
-
-    .EXAMPLE
-    
-        PS C:\> "external.domain" | Get-NetForest
-#>
 
     param(
         [Parameter(ValueFromPipeline=$True)]
@@ -992,7 +703,6 @@ filter Get-NetForest {
         Write-Verbose "Using alternate credentials for Get-NetForest"
 
         if(!$Forest) {
-            # if no domain is supplied, extract the logon domain from the PSCredential passed
             $Forest = $Credential.GetNetworkCredential().Domain
             Write-Verbose "Extracted domain '$Forest' from -Credential"
         }
@@ -1018,12 +728,10 @@ filter Get-NetForest {
         }
     }
     else {
-        # otherwise use the current forest
         $ForestObject = [System.DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()
     }
 
     if($ForestObject) {
-        # get the SID of the forest root
         try {
             $ForestSid = (New-Object System.Security.Principal.NTAccount($ForestObject.RootDomain,"krbtgt")).Translate([System.Security.Principal.SecurityIdentifier]).Value
             $Parts = $ForestSid -Split "-"
@@ -1040,29 +748,6 @@ filter Get-NetForest {
 
 
 filter Get-NetForestDomain {
-<#
-    .SYNOPSIS
-
-        Return all domains for a given forest.
-
-    .PARAMETER Forest
-
-        The forest name to query domain for.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetForestDomain
-
-    .EXAMPLE
-
-        PS C:\> Get-NetForestDomain -Forest external.local
-#>
-
     param(
         [Parameter(ValueFromPipeline=$True)]
         [String]
@@ -1081,25 +766,7 @@ filter Get-NetForestDomain {
 
 
 filter Get-NetForestCatalog {
-<#
-    .SYNOPSIS
 
-        Return all global catalogs for a given forest.
-
-    .PARAMETER Forest
-
-        The forest name to query domain for.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetForestCatalog
-#>
-    
     param(
         [Parameter(ValueFromPipeline=$True)]
         [String]
@@ -1118,46 +785,6 @@ filter Get-NetForestCatalog {
 
 
 filter Get-NetDomainController {
-<#
-    .SYNOPSIS
-
-        Return the current domain controllers for the active domain.
-
-    .PARAMETER Domain
-
-        The domain to query for domain controllers, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER LDAP
-
-        Switch. Use LDAP queries to determine the domain controllers.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetDomainController -Domain 'test.local'
-        
-        Determine the domain controllers for 'test.local'.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetDomainController -Domain 'test.local' -LDAP
-
-        Determine the domain controllers for 'test.local' using LDAP queries.
-
-    .EXAMPLE
-
-        PS C:\> 'test.local' | Get-NetDomainController
-
-        Determine the domain controllers for 'test.local'.
-#>
 
     [CmdletBinding()]
     param(
@@ -1189,81 +816,6 @@ filter Get-NetDomainController {
 
 
 function Get-ObjectAcl {
-<#
-    .SYNOPSIS
-        Returns the ACLs associated with a specific active directory object.
-
-        Thanks Sean Metcalf (@pyrotek3) for the idea and guidance.
-
-    .PARAMETER SamAccountName
-
-        Object name to filter for.        
-
-    .PARAMETER Name
-
-        Object name to filter for.
-
-    .PARAMETER DistinguishedName
-
-        Object distinguished name to filter for.
-
-    .PARAMETER ResolveGUIDs
-
-        Switch. Resolve GUIDs to their display names.
-
-    .PARAMETER Filter
-
-        A customized ldap filter string to use, e.g. "(description=*admin*)"
-     
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-
-    .PARAMETER ADSprefix
-
-        Prefix to set for the searcher (like "CN=Sites,CN=Configuration")
-
-    .PARAMETER RightsFilter
-
-        Only return results with the associated rights, "All", "ResetPassword","WriteMembers"
-
-    .PARAMETER Domain
-
-        The domain to use for the query, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-ObjectAcl -SamAccountName matt.admin -domain testlab.local
-        
-        Get the ACLs for the matt.admin user in the testlab.local domain
-
-    .EXAMPLE
-
-        PS C:\> Get-ObjectAcl -SamAccountName matt.admin -domain testlab.local -ResolveGUIDs
-        
-        Get the ACLs for the matt.admin user in the testlab.local domain and
-        resolve relevant GUIDs to their display names.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetOU -FullData | Get-ObjectAcl -ResolveGUIDs
-
-        Enumerate the ACL permissions for all OUs in the domain.
-#>
 
     [CmdletBinding()]
     Param (
@@ -1312,7 +864,6 @@ function Get-ObjectAcl {
     begin {
         $Searcher = Get-DomainSearcher -Domain $Domain -DomainController $DomainController -ADSpath $ADSpath -ADSprefix $ADSprefix -PageSize $PageSize -Credential $Credential
 
-        # get a GUID -> name mapping
         if($ResolveGUIDs) {
             $GUIDs = Get-GUIDMap -Domain $Domain -DomainController $DomainController -PageSize $PageSize -Credential $Credential
         }
@@ -1370,7 +921,6 @@ function Get-ObjectAcl {
                     }
                 } | ForEach-Object {
                     if($GUIDs) {
-                        # if we're resolving GUIDs, map them them to the resolved hash table
                         $AclProperties = @{}
                         $_.psobject.properties | ForEach-Object {
                             if( ($_.Name -eq 'ObjectType') -or ($_.Name -eq 'InheritedObjectType') ) {
@@ -1401,89 +951,6 @@ function Get-ObjectAcl {
 
 
 function Add-ObjectAcl {
-<#
-    .SYNOPSIS
-
-        Adds an ACL for a specific active directory object.
-        
-        AdminSDHolder ACL approach from Sean Metcalf (@pyrotek3)
-            https://adsecurity.org/?p=1906
-
-        ACE setting method adapted from https://social.technet.microsoft.com/Forums/windowsserver/en-US/df3bfd33-c070-4a9c-be98-c4da6e591a0a/forum-faq-using-powershell-to-assign-permissions-on-active-directory-objects.
-
-        'ResetPassword' doesn't need to know the user's current password
-        'WriteMembers' allows for the modification of group membership
-
-    .PARAMETER TargetSamAccountName
-
-        Target object name to filter for.        
-
-    .PARAMETER TargetName
-
-        Target object name to filter for.
-
-    .PARAMETER TargetDistinguishedName
-
-        Target object distinguished name to filter for.
-
-    .PARAMETER TargetFilter
-
-        A customized ldap filter string to use to find a target, e.g. "(description=*admin*)"
-
-    .PARAMETER TargetADSpath
-
-        The LDAP source for the target, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-
-    .PARAMETER TargetADSprefix
-
-        Prefix to set for the target searcher (like "CN=Sites,CN=Configuration")
-
-    .PARAMETER PrincipalSID
-
-        The SID of the principal object to add for access.
-
-    .PARAMETER PrincipalName
-
-        The name of the principal object to add for access.
-
-    .PARAMETER PrincipalSamAccountName
-
-        The samAccountName of the principal object to add for access.
-
-    .PARAMETER Rights
-
-        Rights to add for the principal, "All","ResetPassword","WriteMembers","DCSync"
-
-    .PARAMETER Domain
-
-        The domain to use for the target query, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .EXAMPLE
-
-        Add-ObjectAcl -TargetSamAccountName matt -PrincipalSamAccountName john
-
-        Grants 'john' all full access rights to the 'matt' account.
-
-    .EXAMPLE
-
-        Add-ObjectAcl -TargetSamAccountName matt -PrincipalSamAccountName john -Rights ResetPassword
-
-        Grants 'john' the right to reset the password for the 'matt' account.
-
-    .LINK
-
-        https://adsecurity.org/?p=1906
-        
-        https://social.technet.microsoft.com/Forums/windowsserver/en-US/df3bfd33-c070-4a9c-be98-c4da6e591a0a/forum-faq-using-powershell-to-assign-permissions-on-active-directory-objects?forum=winserverpowershell
-#>
 
     [CmdletBinding()]
     Param (
@@ -1577,14 +1044,8 @@ function Add-ObjectAcl {
                     }
                     else {
                         $GUIDs = Switch ($Rights) {
-                            # ResetPassword doesn't need to know the user's current password
                             "ResetPassword" { "00299570-246d-11d0-a768-00aa006e0529" }
-                            # allows for the modification of group membership
                             "WriteMembers" { "bf9679c0-0de6-11d0-a285-00aa003049e2" }
-                            # 'DS-Replication-Get-Changes' = 1131f6aa-9c07-11d1-f79f-00c04fc2dcd2
-                            # 'DS-Replication-Get-Changes-All' = 1131f6ad-9c07-11d1-f79f-00c04fc2dcd2
-                            # 'DS-Replication-Get-Changes-In-Filtered-Set' = 89e95b76-444d-4c62-991a-0facbeda640c
-                            #   when applied to a domain's ACL, allows for the use of DCSync
                             "DCSync" { "1131f6aa-9c07-11d1-f79f-00c04fc2dcd2", "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2", "89e95b76-444d-4c62-991a-0facbeda640c"}
                         }
                     }
@@ -1597,7 +1058,6 @@ function Add-ObjectAcl {
                         }
                     }
                     else {
-                        # deault to GenericAll rights
                         $ADRights = [System.DirectoryServices.ActiveDirectoryRights] "GenericAll"
                         $ACEs += New-Object System.DirectoryServices.ActiveDirectoryAccessRule $Identity,$ADRights,$ControlType,$InheritanceType
                     }
@@ -1605,7 +1065,6 @@ function Add-ObjectAcl {
                     Write-Verbose "Granting principal $PrincipalSID '$Rights' on $($_.Properties.distinguishedname)"
 
                     try {
-                        # add all the new ACEs to the specified object
                         ForEach ($ACE in $ACEs) {
                             Write-Verbose "Granting principal $PrincipalSID '$($ACE.ObjectType)' rights on $($_.Properties.distinguishedname)"
                             $Object = [adsi]($_.path)
@@ -1627,29 +1086,6 @@ function Add-ObjectAcl {
 
 
 filter Get-GUIDMap {
-<#
-    .SYNOPSIS
-
-        Helper to build a hash table of [GUID] -> resolved names
-
-        Heavily adapted from http://blogs.technet.com/b/ashleymcglone/archive/2013/03/25/active-directory-ou-permissions-report-free-powershell-script-download.aspx
-
-    .PARAMETER Domain
-    
-        The domain to use for the query, defaults to the current domain.
-
-    .PARAMETER DomainController
-    
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .LINK
-
-        http://blogs.technet.com/b/ashleymcglone/archive/2013/03/25/active-directory-ou-permissions-report-free-powershell-script-download.aspx
-#>
 
     [CmdletBinding()]
     Param (
@@ -1677,7 +1113,6 @@ filter Get-GUIDMap {
         $SchemaSearcher.filter = "(schemaIDGUID=*)"
         try {
             $SchemaSearcher.FindAll() | Where-Object {$_} | ForEach-Object {
-                # convert the GUID
                 $GUIDs[(New-Object Guid (,$_.properties.schemaidguid[0])).Guid] = $_.properties.name[0]
             }
         }
@@ -1691,7 +1126,6 @@ filter Get-GUIDMap {
         $RightsSearcher.filter = "(objectClass=controlAccessRight)"
         try {
             $RightsSearcher.FindAll() | Where-Object {$_} | ForEach-Object {
-                # convert the GUID
                 $GUIDs[$_.properties.rightsguid[0].toString()] = $_.properties.name[0]
             }
         }
@@ -1705,103 +1139,6 @@ filter Get-GUIDMap {
 
 
 function Get-NetComputer {
-<#
-    .SYNOPSIS
-
-        This function utilizes adsisearcher to query the current AD context
-        for current computer objects. Based off of Carlos Perez's Audit.psm1
-        script in Posh-SecMod (link below).
-
-    .PARAMETER ComputerName
-
-        Return computers with a specific name, wildcards accepted.
-
-    .PARAMETER SPN
-
-        Return computers with a specific service principal name, wildcards accepted.
-
-    .PARAMETER OperatingSystem
-
-        Return computers with a specific operating system, wildcards accepted.
-
-    .PARAMETER ServicePack
-
-        Return computers with a specific service pack, wildcards accepted.
-
-    .PARAMETER Filter
-
-        A customized ldap filter string to use, e.g. "(description=*admin*)"
-
-    .PARAMETER Printers
-
-        Switch. Return only printers.
-
-    .PARAMETER Ping
-
-        Switch. Ping each host to ensure it's up before enumerating.
-
-    .PARAMETER FullData
-
-        Switch. Return full computer objects instead of just system names (the default).
-
-    .PARAMETER Domain
-
-        The domain to query for computers, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-    
-    .PARAMETER SiteName
-
-        The AD Site name to search for computers.
-
-    .PARAMETER Unconstrained
-
-        Switch. Return computer objects that have unconstrained delegation.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetComputer
-        
-        Returns the current computers in current domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetComputer -SPN mssql*
-        
-        Returns all MS SQL servers on the domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetComputer -Domain testing
-        
-        Returns the current computers in 'testing' domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetComputer -Domain testing -FullData
-        
-        Returns full computer objects in the 'testing' domain.
-
-    .LINK
-
-        https://github.com/darkoperator/Posh-SecMod/blob/master/Audit/Audit.psm1
-#>
 
     [CmdletBinding()]
     Param (
@@ -1863,15 +1200,12 @@ function Get-NetComputer {
 
         if ($CompSearcher) {
 
-            # if we're checking for unconstrained delegation
             if($Unconstrained) {
                 Write-Verbose "Searching for computers with for unconstrained delegation"
                 $Filter += "(userAccountControl:1.2.840.113556.1.4.803:=524288)"
             }
-            # set the filters for the seracher if it exists
             if($Printers) {
                 Write-Verbose "Searching for printers"
-                # $CompSearcher.filter="(&(objectCategory=printQueue)$Filter)"
                 $Filter += "(objectCategory=printQueue)"
             }
             if($SPN) {
@@ -1897,17 +1231,13 @@ function Get-NetComputer {
                 $CompSearcher.FindAll() | Where-Object {$_} | ForEach-Object {
                     $Up = $True
                     if($Ping) {
-                        # TODO: how can these results be piped to ping for a speedup?
                         $Up = Test-Connection -Count 1 -Quiet -ComputerName $_.properties.dnshostname
                     }
                     if($Up) {
-                        # return full data objects
                         if ($FullData) {
-                            # convert/process the LDAP fields for each result
                             Convert-LDAPProperty -Properties $_.Properties
                         }
                         else {
-                            # otherwise we're just returning the DNS host name
                             $_.properties.dnshostname
                         }
                     }
@@ -1922,68 +1252,6 @@ function Get-NetComputer {
 
 
 function Get-NetOU {
-<#
-    .SYNOPSIS
-
-        Gets a list of all current OUs in a domain.
-
-    .PARAMETER OUName
-
-        The OU name to query for, wildcards accepted.
-
-    .PARAMETER GUID
-
-        Only return OUs with the specified GUID in their gplink property.
-
-    .PARAMETER Domain
-
-        The domain to query for OUs, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through.
-
-    .PARAMETER FullData
-
-        Switch. Return full OU objects instead of just object names (the default).
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetOU
-        
-        Returns the current OUs in the domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetOU -OUName *admin* -Domain testlab.local
-        
-        Returns all OUs with "admin" in their name in the testlab.local domain.
-
-     .EXAMPLE
-
-        PS C:\> Get-NetOU -GUID 123-...
-        
-        Returns all OUs with linked to the specified group policy object.
-
-     .EXAMPLE
-
-        PS C:\> "*admin*","*server*" | Get-NetOU
-
-        Get the full OU names for the given search terms piped on the pipeline.
-#>
 
     [CmdletBinding()]
     Param (
@@ -2020,7 +1288,6 @@ function Get-NetOU {
     process {
         if ($OUSearcher) {
             if ($GUID) {
-                # if we're filtering for a GUID in .gplink
                 $OUSearcher.filter="(&(objectCategory=organizationalUnit)(name=$OUName)(gplink=*$GUID*))"
             }
             else {
@@ -2030,11 +1297,9 @@ function Get-NetOU {
             try {
                 $OUSearcher.FindAll() | Where-Object {$_} | ForEach-Object {
                     if ($FullData) {
-                        # convert/process the LDAP fields for each result
                         Convert-LDAPProperty -Properties $_.Properties
                     }
                     else { 
-                        # otherwise just returning the ADS paths of the OUs
                         $_.properties.adspath
                     }
                 }
@@ -2048,81 +1313,6 @@ function Get-NetOU {
 
 
 function Get-NetGroup {
-<#
-    .SYNOPSIS
-
-        Gets a list of all current groups in a domain, or all
-        the groups a given user/group object belongs to.
-
-    .PARAMETER GroupName
-
-        The group name to query for, wildcards accepted.
-
-    .PARAMETER SID
-
-        The group SID to query for.
-
-    .PARAMETER UserName
-
-        The user name (or group name) to query for all effective
-        groups of.
-
-    .PARAMETER Filter
-
-        A customized ldap filter string to use, e.g. "(description=*admin*)"
-
-    .PARAMETER Domain
-
-        The domain to query for groups, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-
-    .PARAMETER AdminCount
-
-        Switch. Return group with adminCount=1.
-
-    .PARAMETER FullData
-
-        Switch. Return full group objects instead of just object names (the default).
-
-    .PARAMETER RawSids
-
-        Switch. Return raw SIDs when using "Get-NetGroup -UserName X"
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetGroup
-        
-        Returns the current groups in the domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetGroup -GroupName *admin*
-        
-        Returns all groups with "admin" in their group name.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetGroup -Domain testing -FullData
-        
-        Returns full group data objects in the 'testing' domain
-#>
 
     [CmdletBinding()]
     param(
@@ -2178,20 +1368,15 @@ function Get-NetGroup {
             }
 
             if ($UserName) {
-                # get the raw user object
                 $User = Get-ADObject -SamAccountName $UserName -Domain $Domain -DomainController $DomainController -Credential $Credential -ReturnRaw -PageSize $PageSize
 
-                # convert the user to a directory entry
                 $UserDirectoryEntry = $User.GetDirectoryEntry()
 
-                # cause the cache to calculate the token groups for the user
                 $UserDirectoryEntry.RefreshCache("tokenGroups")
 
                 $UserDirectoryEntry.TokenGroups | ForEach-Object {
-                    # convert the token group sid
                     $GroupSid = (New-Object System.Security.Principal.SecurityIdentifier($_,0)).Value
                     
-                    # ignore the built in users and default domain user group
                     if(!($GroupSid -match '^S-1-5-32-545|-513$')) {
                         if($FullData) {
                             Get-ADObject -SID $GroupSid -PageSize $PageSize -Domain $Domain -DomainController $DomainController -Credential $Credential
@@ -2216,13 +1401,10 @@ function Get-NetGroup {
                 }
             
                 $GroupSearcher.FindAll() | Where-Object {$_} | ForEach-Object {
-                    # if we're returning full data objects
                     if ($FullData) {
-                        # convert/process the LDAP fields for each result
                         Convert-LDAPProperty -Properties $_.Properties
                     }
                     else {
-                        # otherwise we're just returning the group name
                         $_.properties.samaccountname
                     }
                 }
@@ -2233,77 +1415,6 @@ function Get-NetGroup {
 
 
 function Get-NetGroupMember {
-<#
-    .SYNOPSIS
-
-        This function users [ADSI] and LDAP to query the current AD context
-        or trusted domain for users in a specified group. If no GroupName is
-        specified, it defaults to querying the "Domain Admins" group.
-        This is a replacement for "net group 'name' /domain"
-
-    .PARAMETER GroupName
-
-        The group name to query for users.
-
-    .PARAMETER SID
-
-        The Group SID to query for users. If not given, it defaults to 512 "Domain Admins"
-
-    .PARAMETER Filter
-
-        A customized ldap filter string to use, e.g. "(description=*admin*)"
-
-    .PARAMETER Domain
-
-        The domain to query for group users, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-
-    .PARAMETER FullData
-
-        Switch. Returns full data objects instead of just group/users.
-
-    .PARAMETER Recurse
-
-        Switch. If the group member is a group, recursively try to query its members as well.
-
-    .PARAMETER UseMatchingRule
-
-        Switch. Use LDAP_MATCHING_RULE_IN_CHAIN in the LDAP search query when -Recurse is specified.
-        Much faster than manual recursion, but doesn't reveal cross-domain groups.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetGroupMember
-        
-        Returns the usernames that of members of the "Domain Admins" domain group.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetGroupMember -Domain testing -GroupName "Power Users"
-        
-        Returns the usernames that of members of the "Power Users" group in the 'testing' domain.
-
-    .LINK
-
-        http://www.powershellmagazine.com/2013/05/23/pstip-retrieve-group-membership-of-an-active-directory-group-recursively/
-#>
 
     [CmdletBinding()]
     param(
@@ -2341,7 +1452,6 @@ function Get-NetGroupMember {
     )
 
     begin {
-        # so this isn't repeated if users are passed on the pipeline
         $GroupSearcher = Get-DomainSearcher -Domain $Domain -DomainController $DomainController -Credential $Credential -ADSpath $ADSpath -PageSize $PageSize
 
         if(!$DomainController) {
@@ -2358,7 +1468,6 @@ function Get-NetGroupMember {
         if ($GroupSearcher) {
 
             if ($Recurse -and $UseMatchingRule) {
-                # resolve the group to a distinguishedname
                 if ($GroupName) {
                     $Group = Get-NetGroup -GroupName $GroupName -Domain $Domain -DomainController $DomainController -Credential $Credential -FullData -PageSize $PageSize
                 }
@@ -2366,7 +1475,6 @@ function Get-NetGroupMember {
                     $Group = Get-NetGroup -SID $SID -Domain $Domain -DomainController $DomainController -Credential $Credential -FullData -PageSize $PageSize
                 }
                 else {
-                    # default to domain admins
                     $SID = (Get-DomainSID -Domain $Domain -Credential $Credential) + "-512"
                     $Group = Get-NetGroup -SID $SID -Domain $Domain -DomainController $DomainController -Credential $Credential -FullData -PageSize $PageSize
                 }
@@ -2392,7 +1500,6 @@ function Get-NetGroupMember {
                     $GroupSearcher.filter = "(&(objectCategory=group)(objectSID=$SID)$Filter)"
                 }
                 else {
-                    # default to domain admins
                     $SID = (Get-DomainSID -Domain $Domain -Credential $Credential) + "-512"
                     $GroupSearcher.filter = "(&(objectCategory=group)(objectSID=$SID)$Filter)"
                 }
@@ -2448,7 +1555,6 @@ function Get-NetGroupMember {
             }
 
             $Members | Where-Object {$_} | ForEach-Object {
-                # if we're doing the LDAP_MATCHING_RULE_IN_CHAIN recursion
                 if ($Recurse -and $UseMatchingRule) {
                     $Properties = $_.Properties
                 } 
@@ -2481,7 +1587,6 @@ function Get-NetGroupMember {
                     try {
                         $MemberDN = $Properties.distinguishedname[0]
                         
-                        # extract the FQDN from the Distinguished Name
                         $MemberDomain = $MemberDN.subString($MemberDN.IndexOf("DC=")) -replace 'DC=','' -replace ',','.'
                     }
                     catch {
@@ -2490,11 +1595,9 @@ function Get-NetGroupMember {
                     }
 
                     if ($Properties.samaccountname) {
-                        # forest users have the samAccountName set
                         $MemberName = $Properties.samaccountname[0]
                     } 
                     else {
-                        # external trust users have a SID, so convert it
                         try {
                             $MemberName = Convert-SidToName $Properties.cn[0]
                         }
@@ -2518,7 +1621,6 @@ function Get-NetGroupMember {
                     $GroupMember | Add-Member Noteproperty 'MemberDN' $MemberDN
                     $GroupMember
 
-                    # if we're doing manual recursion
                     if ($Recurse -and !$UseMatchingRule -and $IsGroup -and $MemberName) {
                         if($FullData) {
                             Get-NetGroupMember -FullData -Domain $MemberDomain -DomainController $DomainController -Credential $Credential -GroupName $MemberName -Recurse -PageSize $PageSize
@@ -2535,68 +1637,6 @@ function Get-NetGroupMember {
 }
 
 function Get-NetUser {
-<#
-    .SYNOPSIS
-
-        Query information for a given user or users in the domain
-        using ADSI and LDAP. Another -Domain can be specified to
-        query for users across a trust.
-        Replacement for "net users /domain"
-
-    .PARAMETER UserName
-
-        Username filter string, wildcards accepted.
-
-    .PARAMETER Domain
-
-        The domain to query for users, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-
-    .PARAMETER Filter
-
-        A customized ldap filter string to use, e.g. "(description=*admin*)"
-
-    .PARAMETER AdminCount
-
-        Switch. Return users with adminCount=1.
-
-    .PARAMETER SPN
-
-        Switch. Only return user objects with non-null service principal names.
-
-    .PARAMETER Unconstrained
-
-        Switch. Return users that have unconstrained delegation.
-
-    .PARAMETER AllowDelegation
-
-        Switch. Return user accounts that are not marked as 'sensitive and not allowed for delegation'
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-    .EXAMPLE
-
-        PS C:\> Get-NetUser -Domain testing
-
-    .EXAMPLE
-
-        PS C:\> Get-NetUser -ADSpath "LDAP://OU=secret,DC=testlab,DC=local"
-#>
 
     param(
         [Parameter(Position=0, ValueFromPipeline=$True)]
@@ -2636,21 +1676,18 @@ function Get-NetUser {
     )
 
     begin {
-        # so this isn't repeated if users are passed on the pipeline
         $UserSearcher = Get-DomainSearcher -Domain $Domain -ADSpath $ADSpath -DomainController $DomainController -PageSize $PageSize -Credential $Credential
     }
 
     process {
         if($UserSearcher) {
 
-            # if we're checking for unconstrained delegation
             if($Unconstrained) {
                 Write-Verbose "Checking for unconstrained delegation"
                 $Filter += "(userAccountControl:1.2.840.113556.1.4.803:=524288)"
             }
             if($AllowDelegation) {
                 Write-Verbose "Checking for users who can be delegated"
-                # negation of "Accounts that are sensitive and not trusted for delegation"
                 $Filter += "(!(userAccountControl:1.2.840.113556.1.4.803:=1048574))"
             }
             if($AdminCount) {
@@ -2658,22 +1695,18 @@ function Get-NetUser {
                 $Filter += "(admincount=1)"
             }
 
-            # check if we're using a username filter or not
             if($UserName) {
-                # samAccountType=805306368 indicates user objects
                 $UserSearcher.filter="(&(samAccountType=805306368)(samAccountName=$UserName)$Filter)"
             }
             elseif($SPN) {
                 $UserSearcher.filter="(&(samAccountType=805306368)(servicePrincipalName=*)$Filter)"
             }
             else {
-                # filter is something like "(samAccountName=*blah*)" if specified
                 $UserSearcher.filter="(&(samAccountType=805306368)$Filter)"
             }
 
             $Results = $UserSearcher.FindAll()
             $Results | Where-Object {$_} | ForEach-Object {
-                # convert/process the LDAP fields for each result
                 $User = Convert-LDAPProperty -Properties $_.Properties
                 $User.PSObject.TypeNames.Add('PowerView.User')
                 $User
@@ -2682,93 +1715,10 @@ function Get-NetUser {
             $UserSearcher.dispose()
         }
     }
+
 }
 
-
-
-
-########################################################
-#
-# LAPS functions below.
-#
-########################################################
-
 function Find-AdmPwdExtendedRights {
-<#
-    .SYNOPSIS
-        
-        This function leverages Get-ObjectAcl to query the domain 
-        for all computer objects with LAPS enabled, then parses each 
-        ExtendedRight ACL assignment to determine which users can read
-        the ms-Mcs-AdmPwd attribute and if it was specifically delegated
-        by the system administrator.
-
-        Credits to @harmj0y and @pyrotek3 for research
-        
-        Author: @leoloobeek
-
-    .PARAMETER Domain
-
-        The domain to use for the query, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER Filter
-
-        Filter to apply to LDAP queries, defaults to all computers with LAPS enabled.
-
-    .PARAMETER ExcludeDelegated
-
-        Switch. Only show users with "All Extended Rights". Default False.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-        NOTE: You must use FQDN of domain: testlab.local\user, not testlab\user
-
-    .EXAMPLE
-
-        PS C:\> Find-AdmPwdExtendedRights
-        
-        Description
-        -----------
-        Get users who can read the ms-Mcs-AdmPwd confidential attribute for all LAPS enabled computers
-
-        Reason: Delegated
-            System admin delegated this group to view the password
-        Reason: All
-            This user/group has all extended rights permission and can view the password
-
-    .EXAMPLE
-
-        PS C:\> Find-AdmPwdExtendedRights -ComputerName victim1.testlab.local
-        
-        Description
-        -----------
-        Only retrieves ExtendedRights for the computer specified
-
-    .EXAMPLE
-
-        PS C:\> Find-AdmPwdExtendedRights -Credential testlab.local\user -Domain testlab.local -DomainController 192.168.1.1
-        
-        Description
-        -----------
-        Retrieve LAPS ACL information from computer not connected to testlab.local domain.
-
-    .LINK
-
-        https://adsecurity.org/?p=1790
-        https://blogs.msdn.microsoft.com/laps/2015/07/17/laps-and-permission-to-join-computer-to-domain/
-        http://www.harmj0y.net/blog/redteaming/abusing-gpo-permissions/
-#>
     [CmdletBinding()]
     param(
 
@@ -2807,12 +1757,10 @@ function Find-AdmPwdExtendedRights {
         Write-Verbose "Retrieving all ExtendedRight ACLs for domain $Domain"
         $ExtendedRights = Get-ObjectAcl -ResolveGUIDs -Filter $LAPSFilter -Domain $Domain -DomainController $DomainController -Credential $Credential -PageSize $PageSize | Where-Object { $_.ActiveDirectoryRights -match "ExtendedRight" }
         
-        # Build a hash table of DN and hostnames
         $CompMap = @{}
         $ComputerObjects = Get-NetComputer -Filter "(ms-mcs-admpwdexpirationtime=*)" -FullData -Domain $Domain -DomainController $DomainController -Credential $Credential | ForEach-Object { $CompMap.Add($_.distinguishedname, $_.dnshostname) }
 
         if($Credential){
-            # Build a hash table of SIDs and user/group
             Write-Verbose "Retrieving all users and groups to resolve SIDs when using PSCredential"
             $SIDMap = @{}
             Get-NetUser -Domain $Domain -DomainController $DomainController -Credential $Credential | ForEach-Object { $SIDMap.Add($_.objectsid, $_.samaccountname) }
@@ -2835,7 +1783,6 @@ function Find-AdmPwdExtendedRights {
             }
             else { return }
 
-            # Map the SID to user/group if not on domain
             if($Credential) {
                 if($SIDMap.Contains($Identity.ToString())) {
                     $Identity = $SIDMap[$Identity.ToString()]
@@ -2854,51 +1801,6 @@ function Find-AdmPwdExtendedRights {
 
 
 function Find-LAPSDelegatedGroups {
-<#
-    .SYNOPSIS
-
-        This function uses Get-NetOU to query the domain 
-        for all OUs and finds the groups the system admin delegated
-        to read the ms-Mcs-AdmPwd attribute. This will not find users
-        with special permissions that can also read the attribute
-        (i.e. users configured with the All Extended Rights permission) 
-
-        Credits to @harmj0y and @pyrotek3 for research
-
-        Author: @leoloobeek
-
-    .PARAMETER Domain
-
-        The domain to use for the query, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-        NOTE: You must use FQDN of domain: testlab.local\user, not testlab\user
-
-    .EXAMPLE
-
-        PS C:\> Find-LAPSDelegatedGroups
-        
-        Description
-        -----------
-        Retrieves the groups delegated to read the ms-Mcs-AdmPwd for each OU
-
-    .LINK
-
-        http://www.harmj0y.net/blog/powershell/running-laps-with-powerview/
-        https://adsecurity.org/?p=1790
-#>
     [CmdletBinding()]
     param(
 
@@ -2917,7 +1819,6 @@ function Find-LAPSDelegatedGroups {
 
     )
 
-    # Next few lines taken from http://www.harmj0y.net/blog/powershell/running-laps-with-powerview/
     Get-NetOU -Domain $Domain -DomainController $DomainController -Credential $Credential -FullData |
      Get-ObjectAcl -Domain $Domain -DomainController $DomainController -Credential $Credential -ResolveGUIDs | Where-Object {
         ($_.ObjectType -like 'ms-Mcs-AdmPwd') -and 
@@ -2934,74 +1835,7 @@ function Find-LAPSDelegatedGroups {
 
 
 function Get-LAPSComputers {
-<#
-    .SYNOPSIS
 
-        Retrieves all computers with LAPS enabled. Passwords for the
-        accounts are displayed if the user has access to view the
-        ms-Mcs-AdmPwd attribute. 
-
-        Similar to @kfosaaen's Get-LAPSPasswords but leverages @harmj0y's
-        PowerView functions and can be used to find computers with LAPS
-        enabled even if user does not have permissions to view password.
-
-        Note: Parameters are taken from Get-NetComputer as this function
-        is essentially a wrapper around it.
-
-    .PARAMETER ComputerName
-
-        Return computers with a specific name, wildcards accepted.
-
-    .PARAMETER SPN
-
-        Return computers with a specific service principal name, wildcards accepted.
-
-    .PARAMETER Domain
-
-        The domain to query for computers, defaults to the current domain.
-
-    .PARAMETER DomainController
-
-        Domain controller to reflect LDAP queries through.
-
-    .PARAMETER ADSpath
-
-        The LDAP source to search through, e.g. "LDAP://OU=secret,DC=testlab,DC=local"
-        Useful for OU queries.
-    
-    .PARAMETER SiteName
-
-        The AD Site name to search for computers.
-
-    .PARAMETER Unconstrained
-
-        Switch. Return computer objects that have unconstrained delegation.
-
-    .PARAMETER PageSize
-
-        The PageSize to set for the LDAP searcher object.
-
-    .PARAMETER Credential
-
-        A [Management.Automation.PSCredential] object of alternate credentials
-        for connection to the target domain.
-
-        NOTE: You must use FQDN of domain: testlab.local\user, not testlab\user
-
-    .EXAMPLE
-
-        PS C:\> Get-LAPSComputers
-        
-        Description
-        -----------
-        Retreives all computer objects from domain with LAPS enabled and displays
-        the time the password expires and the password if the user has read access.
-
-    .LINK
-    
-	   https://github.com/kfosaaen/Get-LAPSPasswords
-       https://blog.netspi.com/running-laps-around-cleartext-passwords/
-#>
     [CmdletBinding()]
     Param (
         [Parameter(ValueFromPipeline=$True)]
@@ -3041,7 +1875,6 @@ function Get-LAPSComputers {
             $HostName = $_.dnshostname
             $Password = $_."ms-mcs-admpwd"
 
-            # epoch conversion code taken directly from https://github.com/kfosaaen/Get-LAPSPasswords/blob/master/Get-LAPSPasswords.ps1
             If ($_."ms-MCS-AdmPwdExpirationTime" -ge 0) {
                 $CurrentExpiration = $([datetime]::FromFileTime([convert]::ToInt64($_."ms-MCS-AdmPwdExpirationTime",10)))
             }
